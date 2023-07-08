@@ -12,8 +12,9 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { OverlayController, OVERLAY_WINDOW_OPTS } from 'electron-overlay-window'
+
 
 class AppUpdater {
   constructor() {
@@ -24,6 +25,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let diablo4Window: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -56,6 +58,8 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
+
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
@@ -68,18 +72,27 @@ const createWindow = async () => {
   const getAssetPath = (...paths: string[]): string => {
     return path.join(RESOURCES_PATH, ...paths);
   };
-
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: 400,
+    height: 300,
     icon: getAssetPath('icon.png'),
+    frame: false,
+    autoHideMenuBar: true,
+    transparent: true,
+    alwaysOnTop: true,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
+    ...OVERLAY_WINDOW_OPTS
   });
+  OverlayController.attachByTitle(
+    mainWindow,
+    process.platform === 'darwin' ? '디아블로 IV' : '디아블로 IV',
+    { hasTitleBarOnMac: true }
+  )
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
@@ -98,8 +111,7 @@ const createWindow = async () => {
     mainWindow = null;
   });
 
-  const menuBuilder = new MenuBuilder(mainWindow);
-  menuBuilder.buildMenu();
+
 
   // Open urls in the user's browser
   mainWindow.webContents.setWindowOpenHandler((edata) => {
@@ -127,6 +139,7 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
