@@ -9,11 +9,13 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, globalShortcut } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath } from './util';
 import { OverlayController, OVERLAY_WINDOW_OPTS } from 'electron-overlay-window'
+
+const appName = "Sourcetree" || '디아블로 IV'
 
 
 class AppUpdater {
@@ -25,7 +27,6 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let diablo4Window: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -38,8 +39,10 @@ if (process.env.NODE_ENV === 'production') {
   sourceMapSupport.install();
 }
 
-const isDebug =
-  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+// const isDebug =
+//   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+
+const isDebug = false
 
 if (isDebug) {
   require('electron-debug')();
@@ -74,8 +77,8 @@ const createWindow = async () => {
   };
   mainWindow = new BrowserWindow({
     show: false,
-    width: 400,
-    height: 300,
+    width: 1000,
+    height: 600,
     icon: getAssetPath('icon.png'),
     frame: false,
     autoHideMenuBar: true,
@@ -88,41 +91,62 @@ const createWindow = async () => {
     },
     ...OVERLAY_WINDOW_OPTS
   });
+
+  makeDemoInteractive()
+
   OverlayController.attachByTitle(
     mainWindow,
-    process.platform === 'darwin' ? '디아블로 IV' : '디아블로 IV',
+    process.platform === 'darwin' ? appName : appName,
     { hasTitleBarOnMac: true }
   )
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
-  mainWindow.on('ready-to-show', () => {
-    if (!mainWindow) {
-      throw new Error('"mainWindow" is not defined');
-    }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
-      mainWindow.show();
-    }
-  });
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-
+  mainWindow.setFocusable(true)
 
   // Open urls in the user's browser
   mainWindow.webContents.setWindowOpenHandler((edata) => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-
+  mainWindow.setFocusable(true)
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
 };
+
+function makeDemoInteractive () {
+  const toggleMouseKey = 'CmdOrCtrl + Alt + X'
+  if (!mainWindow) return;
+
+  let isInteractable = false
+
+  function toggleOverlayState () {
+    if (!mainWindow) return;
+
+    if (isInteractable) {
+      isInteractable = false
+      OverlayController.focusTarget()
+      mainWindow.webContents.send('focus-change', isInteractable)
+    } else {
+      isInteractable = true
+      OverlayController.activateOverlay()
+      mainWindow.webContents.send('focus-change', isInteractable)
+    }
+  }
+
+  mainWindow.on('blur', () => {
+    if (!mainWindow) return;
+    isInteractable = false
+    mainWindow.webContents.send('focus-change', isInteractable)
+  })
+
+  globalShortcut.register(toggleMouseKey, toggleOverlayState)
+}
 
 /**
  * Add event listeners...
