@@ -11,6 +11,9 @@ body {
   align-items: center;
   border: 2px solid green;
 }
+.canvas{
+  border: 2px solid red;
+}
 
 button {
   background-color: white;

@@ -9,14 +9,22 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, globalShortcut } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, globalShortcut, ipcRenderer } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath } from './util';
 import { OverlayController, OVERLAY_WINDOW_OPTS } from 'electron-overlay-window'
+import fs from "fs";
+import { AppTray } from './AppTray'
+import { cvMatFromImage } from './cv'
+
+export interface ImageData {
+  width: number
+  height: number
+  data: Uint8Array
+}
 
 const appName = "Sourcetree" || '디아블로 IV'
-
 
 class AppUpdater {
   constructor() {
@@ -40,7 +48,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // const isDebug =
-//   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+  // process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 const isDebug = false
 
@@ -60,8 +68,6 @@ const installExtensions = async () => {
     )
     .catch(console.log);
 };
-
-
 
 const createWindow = async () => {
   if (isDebug) {
@@ -92,7 +98,7 @@ const createWindow = async () => {
     ...OVERLAY_WINDOW_OPTS
   });
 
-  makeDemoInteractive()
+  addInteractiveKey()
 
   OverlayController.attachByTitle(
     mainWindow,
@@ -119,13 +125,15 @@ const createWindow = async () => {
   new AppUpdater();
 };
 
-function makeDemoInteractive () {
+function addInteractiveKey () {
   const toggleMouseKey = 'CmdOrCtrl + Alt + X'
+  const captureKey = 'CmdOrCtrl + Alt + C'
   if (!mainWindow) return;
 
   let isInteractable = false
 
   function toggleOverlayState () {
+
     if (!mainWindow) return;
 
     if (isInteractable) {
@@ -137,6 +145,7 @@ function makeDemoInteractive () {
       OverlayController.activateOverlay()
       mainWindow.webContents.send('focus-change', isInteractable)
     }
+
   }
 
   mainWindow.on('blur', () => {
@@ -144,8 +153,21 @@ function makeDemoInteractive () {
     isInteractable = false
     mainWindow.webContents.send('focus-change', isInteractable)
   })
+  const saveScreen = async () => {
+    if (mainWindow){
+      const imageData = OverlayController.screenshot()
+      const mat = cvMatFromImage({
+        "width": OverlayController.targetBounds.width,
+        'height': OverlayController.targetBounds.height,
+        'data': imageData
+      })
 
+      mainWindow.webContents.send('MAIN->CLIENT::image-captured', mat)
+      console.log("sended")
+    }
+  }
   globalShortcut.register(toggleMouseKey, toggleOverlayState)
+  globalShortcut.register(captureKey, saveScreen)
 }
 
 /**
@@ -160,15 +182,14 @@ app.on('window-all-closed', () => {
   }
 });
 
-app
-  .whenReady()
-  .then(() => {
+app.on('ready', async () => {
+  new AppTray()
+  createWindow();
 
-    createWindow();
-    app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (mainWindow === null) createWindow();
-    });
-  })
-  .catch(console.log);
+  app.on('activate', () => {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (mainWindow === null) createWindow();
+  });
+
+})

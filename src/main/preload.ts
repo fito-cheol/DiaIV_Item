@@ -2,7 +2,13 @@
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'ipc-example';
+export type Channels =
+'MAIN->OVERLAY::focus-change' |
+'OVERLAY->MAIN::focus-game' |
+'CLIENT->MAIN::update-host-config' |
+'MAIN->CLIENT::image-captured' |
+'ipc-example'
+;
 
 const electronHandler = {
   ipcRenderer: {
@@ -23,6 +29,7 @@ const electronHandler = {
     },
   },
 };
+
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
 
