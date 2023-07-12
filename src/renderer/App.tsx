@@ -2,36 +2,60 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import React, { useEffect, useRef, useState } from 'react';
 
+let a = 1;
+function logTmp(text: string) {
+  window.electron.ipcRenderer.sendMessage('ipc-example', [text]);
+}
+
 function Hello() {
   // const [image, setImage] = useState<any>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [log, setLog] = useState<string>('Nothing');
   useEffect(() => {
-    setLog('useEffed Triggered');
+    setLog(`useEffed Triggered_${a}`);
+    a += 1;
 
-    window.electron.ipcRenderer.on(
-      'MAIN->CLIENT::image-captured',
-      (event, imageFromMain: any) => {
-        window.electron.ipcRenderer.sendMessage('ipc-example', ['on Inside']);
-        setLog(`recieved on`);
-        const imgData = new ImageData(
-          new Uint8ClampedArray(imageFromMain.data),
-          imageFromMain.cols,
-          imageFromMain.rows
-        );
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const context = canvas.getContext('2d');
-          canvas.width = imgData.width;
-          canvas.height = imgData.height;
-          if (context) {
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            context.putImageData(imgData, 0, 0);
-          }
-        }
-        imageFromMain.delete();
-      }
-    );
+    // window.electron.ipcRenderer.on(
+    //   'MAIN->CLIENT::image-captured',
+    //   (event, imageFromMain: any) => {
+    //     let logText = 'on Inside';
+    //     setLog(`recieved on`);
+
+    //     const url = URL.createObjectURL(imageFromMain.data);
+
+    //     logTmp('0');
+    //     // const imgData = new ImageData(
+    //     //   imageFromMain.data,
+    //     //   imageFromMain.width,
+    //     //   imageFromMain.height
+    //     // );
+    //     logTmp('a');
+    //     const canvas = canvasRef.current;
+    //     logTmp('b');
+    //     if (canvas) {
+    //       logText += 'canvas Exist';
+    //       logTmp('c');
+    //       const context = canvas.getContext('2d');
+    //       canvas.width = imageFromMain.width;
+    //       canvas.height = imageFromMain.height;
+    //       if (context) {
+    //         logText += 'context Exist';
+
+    //         // context.clearRect(0, 0, canvas.width, canvas.height);
+    //         // context.putImageData(imgData, 0, 0);
+    //         const img = new Image();
+    //         img.onload = () => {
+    //           context.drawImage(img, 0, 0);
+    //         };
+    //         img.src = url;
+    //       }
+    //     } else {
+    //       logText += 'canvas Not Exist';
+    //     }
+    //     logTmp(logText);
+    //     imageFromMain.delete();
+    //   }
+    // );
   }, []);
 
   return (

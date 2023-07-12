@@ -1,4 +1,5 @@
-import cv from "opencv-ts";
+import cv, {Mat} from "opencv-ts";
+
 export interface ImageData {
   width: number
   height: number
@@ -13,3 +14,10 @@ export function cvMatFromImage (img: ImageData) {
   return mat
 }
 
+export function ImageDataFromMat(mat: Mat){
+   return new ImageData(
+    new Uint8ClampedArray(mat.data),
+    mat.cols,
+    mat.rows
+  );
+}

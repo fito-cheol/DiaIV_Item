@@ -7,6 +7,7 @@ export type Channels =
 'OVERLAY->MAIN::focus-game' |
 'CLIENT->MAIN::update-host-config' |
 'MAIN->CLIENT::image-captured' |
+'MAIN->CLIENT::buffer-captured' |
 'ipc-example'
 ;
 

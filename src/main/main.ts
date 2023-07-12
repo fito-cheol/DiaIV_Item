@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, globalShortcut, ipcRenderer } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, globalShortcut, desktopCapturer } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath } from './util';
@@ -17,6 +17,7 @@ import { OverlayController, OVERLAY_WINDOW_OPTS } from 'electron-overlay-window'
 import fs from "fs";
 import { AppTray } from './AppTray'
 import { cvMatFromImage } from './cv'
+import { PNG } from 'pngjs';
 
 export interface ImageData {
   width: number
@@ -43,6 +44,7 @@ ipcMain.on('ipc-example', async (event, arg) => {
 });
 
 if (process.env.NODE_ENV === 'production') {
+  // import sourceMapSupport from 'source-map-support'
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
@@ -128,6 +130,7 @@ const createWindow = async () => {
 function addInteractiveKey () {
   const toggleMouseKey = 'CmdOrCtrl + Alt + X'
   const captureKey = 'CmdOrCtrl + Alt + C'
+  const captureKey2 = 'CmdOrCtrl + Alt + D'
   if (!mainWindow) return;
 
   let isInteractable = false
@@ -153,22 +156,42 @@ function addInteractiveKey () {
     isInteractable = false
     mainWindow.webContents.send('focus-change', isInteractable)
   })
-  const saveScreen = async () => {
-    if (mainWindow){
-      const imageData = OverlayController.screenshot()
-      const mat = cvMatFromImage({
-        "width": OverlayController.targetBounds.width,
-        'height': OverlayController.targetBounds.height,
-        'data': imageData
-      })
+  const captureScreen = async () => {
 
-      mainWindow.webContents.send('MAIN->CLIENT::image-captured', mat)
-      console.log("sended")
+    if (mainWindow){
+      const captureImg = await mainWindow.webContents.capturePage(OverlayController.targetBounds)
+
+      fs.writeFileSync('captureScreen.png', captureImg.toPNG(), 'base64');
     }
+  }
+  const saveScreen = async () => {
+    try{
+      if (mainWindow){
+        const {width, height, x, y} = OverlayController.targetBounds
+        const bitmapBuffer = OverlayController.screenshot()
+        const png = new PNG({ width, height });
+        png.data = Buffer.from(bitmapBuffer);
+        // Save the PNG image to a file
+
+        const pngBuffer = PNG.sync.write(png)
+        const outputFile = 'output/output.png';
+        fs.writeFileSync(outputFile, pngBuffer)
+
+        // mainWindow.webContents.send('MAIN->CLIENT::buffer-captured', pngBuffer)
+        // mainWindow.webContents.send('MAIN->CLIENT::image-captured', pngBuffer)
+        console.log("sended_")
+      }
+    }catch (e){
+      console.log('Error at saveScreen: ', e)
+    }
+
   }
   globalShortcut.register(toggleMouseKey, toggleOverlayState)
   globalShortcut.register(captureKey, saveScreen)
+  globalShortcut.register(captureKey2, captureScreen)
 }
+
+
 
 /**
  * Add event listeners...
