@@ -18,6 +18,7 @@ import fs from "fs";
 import { AppTray } from './AppTray'
 import { PNG } from 'pngjs';
 import {handle_image} from './modules/ImageProcessor'
+import ImageManager from './modules/ImageManager'
 
 export interface ImageData {
   width: number
@@ -25,7 +26,8 @@ export interface ImageData {
   data: Uint8Array
 }
 
-const appName = "Sourcetree" || '디아블로 IV'
+const appName = "Sourcetree"
+// const appName = '디아블로 IV'
 
 class AppUpdater {
   constructor() {
@@ -167,6 +169,7 @@ function addInteractiveKey () {
   const saveScreen = async () => {
     try{
       if (mainWindow){
+
         const {width, height, x, y} = OverlayController.targetBounds
         const bitmapBuffer = OverlayController.screenshot()
         const png = new PNG({ width, height });
@@ -176,7 +179,15 @@ function addInteractiveKey () {
         const pngBuffer = PNG.sync.write(png)
         const outputFile = 'output/output.png';
         fs.writeFileSync(outputFile, pngBuffer)
-        await handle_image(outputFile);
+        const buffer = fs.readFileSync(outputFile)
+        fs.writeFileSync('output/output_copy.png', buffer)
+
+        // TEST COPY OUTPUT
+        const copyInstance = ImageManager.newByPath(outputFile, width, height)
+        copyInstance.save_image('output/output_read_write.png')
+
+        // MAIN
+        // await handle_image(outputFile, width, height);
 
         // const imageFromMain = {
         //   width: width,

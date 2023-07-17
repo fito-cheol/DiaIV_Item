@@ -3,18 +3,9 @@ import {Coordinate, Rectangle} from './Coordinate'
 import { runOCR, save_text, read_text } from './CloudVision'
 import Item from './Item'
 
-const SCREEN_COMPARE = ImageManager.makeImageByPath("image/screen_compare.png")
-const SCREEN_LEGENDARY = ImageManager.makeImageByPath("image/screen_legendary.png")
-const SCREEN_RARE = ImageManager.makeImageByPath("image/screen_rare.png")
-const SCREEN_UNIQUE = ImageManager.makeImageByPath("image/screen_unique.png")
-
-const UP_BORDER = ImageManager.makeImageByPath("ref_image/legend_boundary_up.png")
-const DOWN_BORDER = ImageManager.makeImageByPath("ref_image/legend_boundary_down.png")
-
-
-async function handle_image(file_path:string){
+async function handle_image(file_path:string, width:number, height:number){
   console.time('Execution Time: handle_image');
-  const item_box = mark_top_bottom(file_path, false)
+  const item_box = mark_top_bottom(file_path, width, height, true)
   if (item_box == null){
     console.log('404: Item Box Not Found')
     console.timeEnd('Execution Time: handle_image');
@@ -33,8 +24,11 @@ async function handle_image(file_path:string){
 
   console.timeEnd('Execution Time: handle_image');
 }
-function mark_top_bottom(image_path:string, debug:boolean=false): ImageManager | null{
-  const origin_image_manager= ImageManager.makeImageByPath(image_path)
+function mark_top_bottom(image_path:string, width:number, height:number, debug:boolean=false): ImageManager | null{
+  const UP_BORDER = ImageManager.newByPath("ref_image/legend_boundary_up.png", 524, 45)
+  const DOWN_BORDER = ImageManager.newByPath("ref_image/legend_boundary_down.png", 522, 31)
+
+  const origin_image_manager= ImageManager.newByPath(image_path, width, height)
   const upFound = origin_image_manager.image_finder(UP_BORDER)
 
   const coordinate1 = new Coordinate(upFound.topLeft.x, upFound.topLeft.y)
@@ -46,18 +40,20 @@ function mark_top_bottom(image_path:string, debug:boolean=false): ImageManager |
   const coordinate4 = new Coordinate(downFound.topLeft.x + downFound.width, downFound.topLeft.y)
 
   const rectangle = new Rectangle(coordinate1, coordinate2, coordinate3, coordinate4)
-
+  if (debug){
+    upFound.image.save_image('output/debug_upFound_norm.png')
+    upFound.image.draw_rect(rectangle).save_image('output/debug_upFound_Rect.png')
+  }
   if (!check_in_shape([rectangle.get_height(), rectangle.get_width()])){
     console.log("Not in Shape", rectangle.get_height(), rectangle.get_width())
     return null
   }
+
   const item_box = origin_image_manager.crop_image(rectangle)
+
   if (debug){
-    upFound.image.save_image('output/debug_upFound_norm.png')
-    upFound.image.draw_rect(rectangle).save_image('output/debug_upFound_Rect.png')
     item_box.save_image('output/debug_itemBox.png')
   }
-
   return item_box
 
 }

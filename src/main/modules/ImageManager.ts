@@ -19,11 +19,11 @@ class ImageManager{
   }
 
   show_shape(){
-    return [this.image.cols, this.image.rows]
+    return {width:this.image.rows, height: this.image.cols}
   }
 
-  save_image(path="output/debug.png"){
-    fs.writeFileSync(path, new Uint8Array(this.image.data.buffer))
+  save_image(path:string){
+    fs.writeFileSync(path, this.image.data)
   }
   // show_contour
   // show_image
@@ -67,8 +67,9 @@ class ImageManager{
     const image = this.image.clone()
     const image_draw = this.image.clone()
     const template = img_to_find.get_image()
-    const template_height =  img_to_find.show_shape()[0]
-    const template_width = img_to_find.show_shape()[1]
+    const template_width = img_to_find.show_shape().width
+    const template_height =  img_to_find.show_shape().height
+
 
     // 템플릿 매칭   ---①
     const result = new cv.Mat()
@@ -99,10 +100,17 @@ class ImageManager{
     }
   }
   //method_checker
-  static makeImageByPath(path:string){
-    const newMat = cv.imread(path)
+  static newByPath(path:string, width:number, height:number){
+
+    const buffer = fs.readFileSync(path)
+    const uint8 = new Uint8Array(buffer)
+    console.log(path, width, height)
+
+    let newMat = new cv.Mat(width, height, cv.CV_8U);
+    newMat.data.set(uint8)
     return new ImageManager(newMat)
   }
 }
+
 
 export default ImageManager
