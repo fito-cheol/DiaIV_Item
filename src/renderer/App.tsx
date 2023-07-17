@@ -2,60 +2,60 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import React, { useEffect, useRef, useState } from 'react';
 
-let a = 1;
 function logTmp(text: string) {
   window.electron.ipcRenderer.sendMessage('ipc-example', [text]);
 }
 
 function Hello() {
-  // const [image, setImage] = useState<any>();
+  const [image, setImage] = useState<any>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [log, setLog] = useState<string>('Nothing');
   useEffect(() => {
-    setLog(`useEffed Triggered_${a}`);
-    a += 1;
+    setLog(`useEffed Triggered`);
 
-    // window.electron.ipcRenderer.on(
-    //   'MAIN->CLIENT::image-captured',
-    //   (event, imageFromMain: any) => {
-    //     let logText = 'on Inside';
-    //     setLog(`recieved on`);
+    window.electron.ipcRenderer.on(
+      'MAIN->CLIENT::image-captured',
+      (event, imageFromMain: any) => {
+        let logText = 'on Inside';
+        setLog(`recieved on`);
+        const blob = new Blob([imageFromMain.data]);
+        const url = URL.createObjectURL(blob);
+        // setImage(url);
+        setLog(url);
+        return;
+        logTmp('0');
+        // const imgData = new ImageData(
+        //   imageFromMain.data,
+        //   imageFromMain.width,
+        //   imageFromMain.height
+        // );
+        logTmp('a');
+        const canvas = canvasRef.current;
+        logTmp('b');
+        if (canvas) {
+          logText += 'canvas Exist';
+          logTmp('c');
+          const context = canvas.getContext('2d');
+          canvas.width = imageFromMain.width;
+          canvas.height = imageFromMain.height;
+          if (context) {
+            logText += 'context Exist';
 
-    //     const url = URL.createObjectURL(imageFromMain.data);
-
-    //     logTmp('0');
-    //     // const imgData = new ImageData(
-    //     //   imageFromMain.data,
-    //     //   imageFromMain.width,
-    //     //   imageFromMain.height
-    //     // );
-    //     logTmp('a');
-    //     const canvas = canvasRef.current;
-    //     logTmp('b');
-    //     if (canvas) {
-    //       logText += 'canvas Exist';
-    //       logTmp('c');
-    //       const context = canvas.getContext('2d');
-    //       canvas.width = imageFromMain.width;
-    //       canvas.height = imageFromMain.height;
-    //       if (context) {
-    //         logText += 'context Exist';
-
-    //         // context.clearRect(0, 0, canvas.width, canvas.height);
-    //         // context.putImageData(imgData, 0, 0);
-    //         const img = new Image();
-    //         img.onload = () => {
-    //           context.drawImage(img, 0, 0);
-    //         };
-    //         img.src = url;
-    //       }
-    //     } else {
-    //       logText += 'canvas Not Exist';
-    //     }
-    //     logTmp(logText);
-    //     imageFromMain.delete();
-    //   }
-    // );
+            // context.clearRect(0, 0, canvas.width, canvas.height);
+            // context.putImageData(imgData, 0, 0);
+            const img = new Image();
+            img.onload = () => {
+              context.drawImage(img, 0, 0);
+            };
+            img.src = url;
+          }
+        } else {
+          logText += 'canvas Not Exist';
+        }
+        logTmp(logText);
+        imageFromMain.delete();
+      }
+    );
   }, []);
 
   return (
@@ -66,7 +66,9 @@ function Hello() {
         <h1 style={{ color: 'black' }}> {log} </h1>
       </div>
       <div className="Hello">
-        {/* <img src={image} alt="캡쳐 이미지" /> */}
+        {image && (
+          <img src={image} alt="캡쳐 이미지" style={{ margin: 'auto' }} />
+        )}
         <button
           type="button"
           onClick={() => {

@@ -16,8 +16,8 @@ import { resolveHtmlPath } from './util';
 import { OverlayController, OVERLAY_WINDOW_OPTS } from 'electron-overlay-window'
 import fs from "fs";
 import { AppTray } from './AppTray'
-import { cvMatFromImage } from './cv'
 import { PNG } from 'pngjs';
+import {handle_image} from './modules/ImageProcessor'
 
 export interface ImageData {
   width: number
@@ -176,9 +176,15 @@ function addInteractiveKey () {
         const pngBuffer = PNG.sync.write(png)
         const outputFile = 'output/output.png';
         fs.writeFileSync(outputFile, pngBuffer)
+        await handle_image(outputFile);
 
-        // mainWindow.webContents.send('MAIN->CLIENT::buffer-captured', pngBuffer)
-        // mainWindow.webContents.send('MAIN->CLIENT::image-captured', pngBuffer)
+        // const imageFromMain = {
+        //   width: width,
+        //   height: height,
+        //   data: pngBuffer
+        // }
+        // // mainWindow.webContents.send('MAIN->CLIENT::buffer-captured', pngBuffer)
+        // mainWindow.webContents.send('MAIN->CLIENT::image-captured', imageFromMain)
         console.log("sended_")
       }
     }catch (e){
